@@ -77,8 +77,11 @@ class Vmstatus::CLI
       begin
         host, port = opts[:publish].split(':')
         statsd = Statsd.new(host, port)
+        # use host as a substat in graphite. eg localhost will publish under vmstatus.localhost and
+        # "vmpooler.d.p.n" push to "vmpooler" and "vmpooler-cinext.d.p.n" push to "vmpooler-cinext"
+        substat = opts[:host].split('.').first
         results.state.each_pair do |name, vms|
-          statsd.gauge("vmstatus.#{name}", vms.count)
+          statsd.gauge("vmstatus.#{substat}.#{name}", vms.count)
         end
       rescue ArgumentError => e
         puts "Invalid publish host:port #{opts[:publish]}: #{e.message}"
