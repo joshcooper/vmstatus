@@ -48,7 +48,7 @@ All of the commands support the following options:
 | `--password` | Your vSphere password (or specify via `ENV['LDAP_PASSWORD']`) |
 | `--datacenter` | The vSphere datacenter |
 | `--cluster` | The vSphere cluster |
-| `--vmpooler` | A comma-separated list of vmpooler redis hostnames to reconcile VMs against |
+| `--vmpoolers` | A comma-separated list of vmpooler redis hostnames to reconcile VMs against |
 
 ### Summary
 
