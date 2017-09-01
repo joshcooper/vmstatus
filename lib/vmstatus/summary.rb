@@ -37,6 +37,23 @@ class Vmstatus::Summary
 
     puts "Efficiency %.1f%%, #{useful_vms} out of #{total_vms} VMs are doing useful work" % eff
 
+    puts ""
+    countcluster = Hash.new
+    results.vms.each do |vm|
+      clusterhost = vm.clusterhost ? vm.clusterhost : "N/A"
+      # count for each cluster host
+      if !countcluster[clusterhost]
+        countcluster[clusterhost] = 1
+      else
+        countcluster[clusterhost] = countcluster[clusterhost] + 1
+      end
+    end
+
+    puts "Cluster host count of VM"
+    countcluster.sort_by {|host, count| host}.each do |host, count|
+      puts "#{host} #{count}"
+    end
+
     if @opts[:publish]
       begin
         host, port = @opts[:publish].split(':')
@@ -54,6 +71,10 @@ class Vmstatus::Summary
             count = arr.nil? ? 0 : arr.count
             statsd.gauge("#{vmpooler}.#{state}", count)
           end
+        end
+
+        countcluster.each do |host, count|
+          statsd.gauge("host.#{host}", count)
         end
       rescue ArgumentError => e
         raise ArgumentError.new("Invalid publish host:port #{@opts[:publish]}: #{e.message}")

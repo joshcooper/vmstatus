@@ -8,10 +8,11 @@ class Vmstatus::VsphereTask
     @password = opts[:password]
     @datacenter = opts[:datacenter]
     @cluster = opts[:cluster]
+    @vmpoolers = opts[:vmpoolers]
   end
 
   def run(&block)
-    puts "Querying vsphere '#{@host}' for VMs in cluster '#{@cluster}' in datacenter '#{@datacenter}'"
+    puts "Querying vsphere '#{@host}' for VMs in cluster '#{@cluster}' in datacenter '#{@datacenter}' for vmpoolers " + @vmpoolers.join(", ")
 
     with_connection do |conn|
       dc = conn.serviceInstance.find_datacenter(@datacenter)
@@ -66,7 +67,7 @@ class Vmstatus::VsphereTask
         }
       ],
       propSet: [
-        { type: 'VirtualMachine', pathSet: %w(name config.instanceUuid runtime.powerState) }
+        { type: 'VirtualMachine', pathSet: %w(name config.instanceUuid runtime.powerState runtime.host) }
       ]
     )
 
@@ -76,7 +77,8 @@ class Vmstatus::VsphereTask
       if !template_uuids.include?(obj['config.instanceUuid'])
         vsphere_status = {
           :uuid => obj['config.instanceUuid'],
-          :on => obj['runtime.powerState']
+          :on => obj['runtime.powerState'],
+          :clusterhost => obj['runtime.host'].name
         }
         yield obj['name'], vsphere_status
       end
