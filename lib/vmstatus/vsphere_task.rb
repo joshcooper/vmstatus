@@ -8,10 +8,11 @@ class Vmstatus::VsphereTask
     @password = opts[:password]
     @datacenter = opts[:datacenter]
     @cluster = opts[:cluster]
+    @vmpoolers = opts[:vmpoolers]
   end
 
   def run(&block)
-    puts "Querying vsphere '#{@host}' for VMs in cluster '#{@cluster}' in datacenter '#{@datacenter}'"
+    puts "Querying vsphere '#{@host}' for VMs in cluster '#{@cluster}' in datacenter '#{@datacenter}' for vmpoolers " + @vmpoolers.join(", ")
 
     with_connection do |conn|
       dc = conn.serviceInstance.find_datacenter(@datacenter)
@@ -66,17 +67,23 @@ class Vmstatus::VsphereTask
         }
       ],
       propSet: [
-        { type: 'VirtualMachine', pathSet: %w(name config.instanceUuid runtime.powerState) }
+        { type: 'VirtualMachine', pathSet: %w(name config.instanceUuid runtime.powerState runtime.host) }
       ]
     )
 
     result = conn.propertyCollector.RetrieveProperties(:specSet => [filterSpec])
     result.map do |obj|
-      # template names aren't unique, but vm names generally are
       if !template_uuids.include?(obj['config.instanceUuid'])
+        if obj['runtime.host'].nil? || obj['runtime.host'].name.nil?
+          cluster_host = "N/A"
+        else
+          cluster_host = obj['runtime.host'].name
+        end
+        # template names aren't unique, but vm names generally are
         vsphere_status = {
           :uuid => obj['config.instanceUuid'],
-          :on => obj['runtime.powerState']
+          :on => obj['runtime.powerState'],
+          :clusterhost => cluster_host
         }
         yield obj['name'], vsphere_status
       end

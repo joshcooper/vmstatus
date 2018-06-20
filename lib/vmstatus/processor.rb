@@ -16,22 +16,33 @@ class Vmstatus::Processor
     @vms = Concurrent::Map.new
   end
 
+
   def process
     with_futures do |futures|
-      # async collect vsphere inventory
-      future = Concurrent::Future.new(:executor => @executor) do
-        task = Vmstatus::VsphereTask.new(@opts)
-        task.run do |hostname, vsphere_status|
-          @vms.compute(hostname) do |stored_value|
-            vm = stored_value || Vmstatus::VM.new(hostname)
-            vm.vsphere_status = vsphere_status
-            vm
+      @opts[:host].each do |host|
+        # async collect vsphere inventory
+        vcenter_config = {
+            :host => host,
+            :user => @opts[:user],
+            :password => @opts[:password],
+            :datacenter => @opts[:datacenter].shift,
+            :cluster => @opts[:cluster].shift,
+            :vmpoolers => @opts[:vmpoolers]
+        }
+        future = Concurrent::Future.new(:executor => @executor) do
+          task = Vmstatus::VsphereTask.new(vcenter_config)
+          task.run do |hostname, vsphere_status|
+            @vms.compute(hostname) do |stored_value|
+              vm = stored_value || Vmstatus::VM.new(hostname)
+              vm.vsphere_status = vsphere_status
+              vm
+            end
           end
         end
+        future.add_observer(@observer, :on_increment)
+        futures << future
+        future.execute
       end
-      future.add_observer(@observer, :on_increment)
-      futures << future
-      future.execute
 
       # async collect vmpooler(s) inventory
       @opts[:vmpoolers].each do |vmpooler|

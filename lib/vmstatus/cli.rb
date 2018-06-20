@@ -24,11 +24,11 @@ class Vmstatus::CLI
       o.separator '     summary       Summary of VM status'
       o.separator ''
       o.separator 'Options:'
-      o.string '--host', 'vsphere hostname', default: 'localhost'
+      o.array '--host', 'comma-separated list of vsphere hostname', delimiter: ',', default: ['localhost']
       o.string '--user', 'vsphere user'
       o.string '--password', 'vsphere password', default: ENV['LDAP_PASSWORD']
-      o.string '--datacenter', 'vsphere datacenter', default: 'opdx2'
-      o.string '--cluster', 'vsphere cluster', default: 'acceptance1'
+      o.array '--datacenter', 'comma-separated list of vsphere datacenter', delimiter: ',', default: ['opdx2']
+      o.array '--cluster', 'comma-separated list of vsphere cluster', delimiter: ',', default: ['acceptance1']
       o.array '--vmpoolers', 'comma-separated list of vmpooler hostnames', delimiter: ',', default: ['vmpooler','vmpooler-cinext','vmpooler-dev']
       o.bool '-v', '--verbose', 'verbose mode'
       o.bool '-l', '--long', 'show long form of the job url'
@@ -48,6 +48,10 @@ class Vmstatus::CLI
       raise ArgumentError.new("Specify the vsphere (LDAP) username, e.g. 'user@puppet.com'")
     elsif opts[:password].nil?
       raise ArgumentError.new("Specify the vsphere (LDAP) password or set ENV['LDAP_PASSWORD']")
+    end
+
+    if opts[:host].length != opts[:datacenter].length or opts[:datacenter].length != opts[:cluster].length
+      raise ArgumentError.new("When specifying #{opts[:host].length} hosts, you have to also specify the respective --datacenter and --cluster")
     end
 
     formatter = nil
